@@ -55,7 +55,7 @@ namespace Cutwright
         private const double MinDensity = 0.3;
 
         // Above this, a single cell holds far more than one BOM line's worth of text. Seen on a
-        // real customer drawing (drawing DRW-100): the true BOM table's own ruling lines got
+        // real drawing: the true BOM table's own ruling lines got
         // merged by Tabula's lattice detector with an adjacent title-block/tolerance-note region,
         // producing a second, corrupted candidate on the same page whose first cell ran every
         // description, dimension, and page of boilerplate together into one multi-thousand-

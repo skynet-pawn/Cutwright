@@ -46,7 +46,7 @@
 
         // The material's thickness, and - for a tube or angle's second cross-section leg - its
         // height, each in a column of its own rather than embedded in Description (customer drawing
-        // DRW-100: "SHEET STEEL (LASER)"/"RECT BAR"/"ANGLE" name no dimension in the text at
+        // A drawing: "SHEET STEEL (LASER)"/"RECT BAR"/"ANGLE" name no dimension in the text at
         // all). Feed CalloutTranslator.TranslateFromColumns directly; unlike Length/Width they
         // never become Part.width/length themselves.
         Thickness,

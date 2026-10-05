@@ -78,7 +78,7 @@ namespace Cutwright
 
         // Named dimensions read from an estimator's own column-role mapping, one row at a time - a
         // drawing whose BOM table keeps Thickness/Width/Height in columns of their own rather than
-        // embedded in the description text (customer drawing DRW-100: "SHEET STEEL (LASER)"/"RECT BAR"/
+        // embedded in the description text (a drawing: "SHEET STEEL (LASER)"/"RECT BAR"/
         // "ANGLE" carry no dimension in the text at all). null means "no column for that role, or
         // it was blank on this row" - mirrors how a missing float column already reads as 0 today.
         internal readonly record struct ColumnDimensions(float? Thickness, float? Width, float? Height);
@@ -402,7 +402,7 @@ namespace Cutwright
             if (HasWord(text, "ANGLE")) return StockForm.Angle;
 
             // "Rect Bar" is a customer drawing's own term for the same stock our BOMs call Flat Bar
-            // (drawing DRW-100-Q/P, a real customer drawing whose native BOM table used it).
+            // (a drawing whose native BOM table used it).
             if (Has(text, "FLAT BAR") || Has(text, "FLATBAR") || Has(text, "RECT BAR") || HasWord(text, "FB"))
                 return StockForm.FlatBar;
 
