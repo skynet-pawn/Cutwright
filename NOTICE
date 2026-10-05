@@ -1,0 +1,25 @@
+Cutwright
+Copyright 2025-2026 Thomas Steven Davidson
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Cutwright uses the following third-party software, each under its own licence.
+
+  ClosedXML                        0.104.2   MIT
+  ClosedXML.Parser                 1.2.0     MIT
+  DocumentFormat.OpenXml           3.1.1     MIT
+  ExcelNumberFormat                1.1.0     MIT
+  RBush                            4.0.0     MIT
+  System.IO.Packaging              8.0.1     MIT
+  Tabula (.NET port)               1.0.1     MIT
+  netDxf                           2023.11.10  MIT
+  CsvHelper                        33.1.0    MS-PL or Apache-2.0
+  PdfPig                           0.1.16    Apache-2.0
+  SixLabors.Fonts                  1.0.0     Apache-2.0
+
+The self-contained build also includes the .NET runtime (MIT), (c) Microsoft
+Corporation and .NET Foundation contributors.
+
+The full licence text of each component is included in its NuGet package and
+in its project's repository. Cutwright's own source does not contain any of their
+code.

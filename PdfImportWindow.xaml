@@ -1,0 +1,35 @@
+<Window x:Class="Cutwright.PdfImportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Cutwright"
+        mc:Ignorable="d"
+        Title="Import BOM from PDF" Height="600" Width="950">
+
+    <DockPanel Margin="10">
+        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Tabula found these ruled tables in the PDF. Check the one(s) that make up the bill of materials - a table split across a repeated header partway down the page is common; check every part of it and they will be merged in order, top to bottom."/>
+
+        <TextBlock x:Name="StatusText" DockPanel.Dock="Top" Margin="0,0,0,8" TextWrapping="Wrap"
+                   Foreground="DarkRed" Visibility="Collapsed"/>
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
+                    Margin="0,8,0,0">
+            <Button x:Name="ImportButton" Content="Import Selected" FontSize="20" Padding="12,6"
+                    Click="ImportSelected"/>
+        </StackPanel>
+
+        <DataGrid x:Name="CandidatesGrid" AlternatingRowBackground="AliceBlue"
+                  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                  HeadersVisibility="Column">
+            <DataGrid.Columns>
+                <DataGridCheckBoxColumn Header="" Width="34" Binding="{Binding Selected}"/>
+                <DataGridTextColumn Header="Page" Width="50" Binding="{Binding Page}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Rows" Width="55" Binding="{Binding RowCount}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Cols" Width="50" Binding="{Binding ColumnCount}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Preview" Width="*" Binding="{Binding Preview}" IsReadOnly="True"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>

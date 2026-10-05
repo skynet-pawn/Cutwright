@@ -1,0 +1,172 @@
+<Application x:Class="Cutwright.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Cutwright"
+             DispatcherUnhandledException="HandleGlobalException"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <!-- One palette for the whole main window, so a colour is changed here rather than hunted
+             down at each use. The stock and part colours are the same ones the nest drawings use
+             in MainWindow.xaml.cs (NestStockFillBrush / NestPartFillBrush): black is empty space,
+             slate is material you bought, coral is a part. The legends reuse them so a swatch
+             always matches what it labels. -->
+        <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FF2B2F36"/>
+        <SolidColorBrush x:Key="PanelBrush" Color="#FF363C45"/>
+        <SolidColorBrush x:Key="PanelBorderBrush" Color="#FF20242A"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#FFF2F4F7"/>
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#FFAAB2BD"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#FF5B9BD5"/>
+        <SolidColorBrush x:Key="GridRowBrush" Color="#FF3C444F"/>
+        <SolidColorBrush x:Key="GridAltRowBrush" Color="#FF353C46"/>
+        <SolidColorBrush x:Key="GridHeaderBrush" Color="#FF20242A"/>
+        <SolidColorBrush x:Key="WarningRowBrush" Color="#FF6B2E2E"/>
+        <SolidColorBrush x:Key="NestStockBrush" Color="#FF728A9F"/>
+        <SolidColorBrush x:Key="NestPartBrush" Color="Coral"/>
+
+        <!-- Small caption above/beside a toolbar field. -->
+        <Style x:Key="ToolbarLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="12,0,4,0"/>
+        </Style>
+
+        <Style x:Key="ToolbarTextBox" TargetType="TextBox">
+            <Setter Property="Width" Value="64"/>
+            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+        </Style>
+
+        <!-- Hint / legend text on the layout tabs. -->
+        <Style x:Key="HintText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="4,0,12,0"/>
+        </Style>
+
+        <Style x:Key="LegendSwatch" TargetType="Border">
+            <Setter Property="Width" Value="14"/>
+            <Setter Property="Height" Value="14"/>
+            <Setter Property="BorderBrush" Value="Black"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+        </Style>
+
+        <Style TargetType="TabItem">
+            <Setter Property="Padding" Value="18,6"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+
+        <Style x:Key="NestGridColumnHeader" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="{StaticResource GridHeaderBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderBrush" Value="{StaticResource PanelBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+        </Style>
+
+        <!-- A group with parts that did not fit is the one thing on this grid an estimator must not
+             miss, so the whole row is tinted rather than just the number. -->
+        <Style x:Key="NestGridRow" TargetType="DataGridRow">
+            <Setter Property="MinHeight" Value="40"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding HasUnnested}" Value="True">
+                    <Setter Property="Background" Value="{StaticResource WarningRowBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="NestGridCell" TargetType="DataGridCell">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Vertically centres the text of a read-only grid cell; DataGridTextColumn has no
+             vertical alignment of its own. -->
+        <Style x:Key="NestGridCellText" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <!-- The margin does what the cell's Padding cannot: CellStyle replaces the grid's own
+                 cell template, which is what honoured Padding, so text sat hard against the cell
+                 edge. 10 matches the column header's own padding, so headings line up over values. -->
+            <Setter Property="Margin" Value="10,0"/>
+            <Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+        </Style>
+
+        <!-- Left-aligned, like the text columns: right-aligned values sat under left-aligned headers
+             and drifted into the next column. -->
+        <Style x:Key="NestGridNumberText" TargetType="TextBlock" BasedOn="{StaticResource NestGridCellText}">
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+
+        <!-- Command strip. A large button is an icon over a label; the icon is a stroked Path that
+             takes the button's foreground, so it dims with the label when the button is disabled.
+             Icons are drawn as vector shapes on a 24 x 24 grid rather than shipped as images. -->
+        <Style x:Key="RibbonButton" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="10,6,10,4"/>
+            <Setter Property="MinWidth" Value="64"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome" Background="{TemplateBinding Background}" CornerRadius="3"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#33FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#55FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="RibbonIcon" TargetType="Path">
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Stretch" Value="Uniform"/>
+            <Setter Property="StrokeThickness" Value="1.6"/>
+            <Setter Property="StrokeLineJoin" Value="Round"/>
+            <Setter Property="StrokeStartLineCap" Value="Round"/>
+            <Setter Property="StrokeEndLineCap" Value="Round"/>
+            <Setter Property="Stroke" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+        </Style>
+
+        <Style x:Key="RibbonLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,3,0,0"/>
+        </Style>
+
+        <Style x:Key="RibbonGroupCaption" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,4,0,0"/>
+        </Style>
+    </Application.Resources>
+</Application>

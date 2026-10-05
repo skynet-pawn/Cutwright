@@ -1,0 +1,67 @@
+﻿<Window x:Class="Cutwright.BomDetailsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Cutwright"
+        mc:Ignorable="d"
+        Title="Bill of Materials Details" Height="430" Width="560"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+
+    <!-- Typed rather than extracted. Nothing on a customer's drawing says which of our estimates
+         this is, or what we call the job, so there is nothing to read these out of - and the unit
+         count is what every Total on the sheet is calculated from. -->
+    <Grid Margin="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="150"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Label Grid.Row="0" Grid.Column="0" Content="Customer:"/>
+        <TextBox x:Name="CustomerBox" Grid.Row="0" Grid.Column="1" Margin="0,3"/>
+
+        <Label Grid.Row="1" Grid.Column="0" Content="Job / Est:"/>
+        <TextBox x:Name="JobEstBox" Grid.Row="1" Grid.Column="1" Margin="0,3"/>
+
+        <Label Grid.Row="2" Grid.Column="0" Content="Previous Job / Est:"/>
+        <TextBox x:Name="PreviousJobEstBox" Grid.Row="2" Grid.Column="1" Margin="0,3"/>
+
+        <Label Grid.Row="3" Grid.Column="0" Content="Units:"/>
+        <TextBox x:Name="UnitsBox" Grid.Row="3" Grid.Column="1" Margin="0,3"/>
+        <TextBlock Grid.Row="4" Grid.Column="1" TextWrapping="Wrap" Foreground="#555" Margin="2,0,0,6"
+                   Text="Every Total on the sheet is this times the per-unit quantity, so a blank here makes the whole sheet read zero."/>
+
+        <Label Grid.Row="5" Grid.Column="0" Content="Description:"/>
+        <TextBox x:Name="DescriptionBox" Grid.Row="5" Grid.Column="1" Margin="0,3"/>
+
+        <Label Grid.Row="6" Grid.Column="0" Content="Drawing Number:"/>
+        <TextBox x:Name="DrawingNumberBox" Grid.Row="6" Grid.Column="1" Margin="0,3"/>
+
+        <Label Grid.Row="7" Grid.Column="0" Content="By:"/>
+        <TextBox x:Name="EngineerBox" Grid.Row="7" Grid.Column="1" Margin="0,3"/>
+
+        <Label Grid.Row="8" Grid.Column="0" Content="Checked By:"/>
+        <TextBox x:Name="CheckedByBox" Grid.Row="8" Grid.Column="1" Margin="0,3"/>
+
+        <StackPanel Grid.Row="10" Grid.ColumnSpan="2" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Margin="0,12,0,0">
+            <TextBlock x:Name="ValidationText" Foreground="#B00" VerticalAlignment="Center"
+                       Margin="0,0,12,0"/>
+            <Button Content="Cancel" Width="90" Padding="6" Margin="0,0,8,0" IsCancel="True"/>
+            <Button Content="Continue" Width="120" Padding="6" IsDefault="True" Click="Continue"/>
+        </StackPanel>
+    </Grid>
+</Window>

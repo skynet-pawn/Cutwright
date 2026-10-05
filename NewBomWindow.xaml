@@ -1,0 +1,34 @@
+<Window x:Class="Cutwright.NewBomWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Cutwright"
+        mc:Ignorable="d"
+        Title="Type In New BOM" Height="600" Width="900">
+
+    <DockPanel Margin="10">
+        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Type in each part by hand - there is no drawing or CSV behind this one. Qty is per unit, the same figure a CSV import would carry, not a total for the whole job. Leave Length and Width blank for purchased hardware."/>
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
+                    Margin="0,8,0,0">
+            <Button x:Name="BuildButton" Content="Build Bill of Materials" FontSize="20" Padding="12,6"
+                    Click="BuildBillOfMaterials"/>
+        </StackPanel>
+
+        <!-- CanUserAddRows leaves a trailing blank row to type the next part into, the same way
+             an estimator would add a line to a spreadsheet - no separate "Add Row" button needed. -->
+        <DataGrid x:Name="PartsGrid" AlternatingRowBackground="AliceBlue"
+                  AutoGenerateColumns="False" CanUserAddRows="True" CanUserDeleteRows="True"
+                  HeadersVisibility="Column">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Description" Width="3*" Binding="{Binding Description}"/>
+                <DataGridTextColumn Header="Part Number" Width="1.2*" Binding="{Binding PartNumber}"/>
+                <DataGridTextColumn Header="Qty (per unit)" Width="*" Binding="{Binding Qty}"/>
+                <DataGridTextColumn Header="Length" Width="*" Binding="{Binding Length}"/>
+                <DataGridTextColumn Header="Width" Width="*" Binding="{Binding Width}"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>

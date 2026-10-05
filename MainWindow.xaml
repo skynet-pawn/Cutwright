@@ -1,0 +1,475 @@
+﻿<Window x:Class="Cutwright.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Cutwright"
+        mc:Ignorable="d"
+        Title="Cutwright" Height="614" Width="1238" Background="{StaticResource WindowBackgroundBrush}"
+        WindowState="Maximized">
+    <DockPanel>
+        <!-- Command strip, in place of the File menu: grouped large buttons, group names underneath.
+             Everything that reads or replaces a nest is named so SetBusy can turn it off while one
+             is running. There is no Exit - the window's own close button does that, and refusing to
+             let someone close the application because it is mid-nest would be worse than the race.
+             Units sits in the strip: it is a job-wide setting, and committed on Enter or on losing
+             focus because a renest is triggered on commit, not per keystroke. -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource PanelBrush}"
+                BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0,0,0,1" Padding="8,6,8,4">
+            <StackPanel Orientation="Horizontal">
+
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="OpenButton" Style="{StaticResource RibbonButton}" Click="LoadFile"
+                                ToolTip="Open a bill of materials Cutwright has already written (Ctrl+O)">
+                            <StackPanel>
+                                <Path Style="{StaticResource RibbonIcon}" Data="M2,6 L9,6 L11,8 L20,8 L20,19 L2,19 Z M2,11 L22,11 L20,19"/>
+                                <TextBlock Style="{StaticResource RibbonLabel}" Text="Open BOM"/>
+                            </StackPanel>
+                        </Button>
+                        <!-- Every way of creating a BOM that doesn't exist yet, in one dropdown. -->
+                        <Button x:Name="NewBomButton" Style="{StaticResource RibbonButton}" Click="NewBomButton_Click"
+                                ToolTip="Start a new bill of materials: a blank template to fill in, or built from a SolidWorks export, CSV, PDF, or typed in">
+                            <StackPanel>
+                                <Path Style="{StaticResource RibbonIcon}" Data="M6,2 L14,2 L19,7 L19,22 L6,22 Z M14,2 L14,7 L19,7 M12.5,11 L12.5,19 M8.5,15 L16.5,15"/>
+                                <TextBlock Style="{StaticResource RibbonLabel}" Text="New BOM &#x25BE;"/>
+                            </StackPanel>
+                            <Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="_Blank Template..." Click="NewBlankTemplate" x:Name="BlankTemplateMenuOption"/>
+                                    <Separator/>
+                                    <MenuItem Header="From _SolidWorks BOM Export..." Click="New_File" x:Name="NewMenuOption"/>
+                                    <MenuItem Header="From _CSV..." Click="ImportCsvBom" x:Name="ImportCsvMenuOption"/>
+                                    <MenuItem Header="From _PDF..." Click="ImportPdfBom" x:Name="ImportPdfMenuOption"/>
+                                    <MenuItem Header="_Type In..." Click="TypeInNewBom" x:Name="TypeInNewBomMenuOption"/>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Bill of Materials"/>
+                </StackPanel>
+
+                <Rectangle Width="1" Margin="8,2" Fill="{StaticResource PanelBorderBrush}"/>
+
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="SaveButton" Style="{StaticResource RibbonButton}" Click="SaveFile"
+                                ToolTip="Write the nest results into a bill of materials (Ctrl+S)">
+                            <StackPanel>
+                                <Path Style="{StaticResource RibbonIcon}" Data="M3,3 L18,3 L21,6 L21,21 L3,21 Z M7,3 L7,9 L16,9 L16,3 M7,21 L7,14 L17,14 L17,21"/>
+                                <TextBlock Style="{StaticResource RibbonLabel}" Text="Save"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="ExportDxfButton" Style="{StaticResource RibbonButton}" Click="SaveSheetToDXF"
+                                ToolTip="Write a DXF per distinct sheet layout, for the shop to cut from">
+                            <StackPanel>
+                                <Path Style="{StaticResource RibbonIcon}" Data="M4,14 L4,20 L20,20 L20,14 M12,15 L12,3.5 M7,8.5 L12,3.5 L17,8.5"/>
+                                <TextBlock Style="{StaticResource RibbonLabel}" Text="Nest to DXF"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="ExportSolidWorksButton" Style="{StaticResource RibbonButton}" Click="ExportSolidWorksParts"
+                                ToolTip="Build a SolidWorks part for each unique part in the BOM (needs SolidWorks)">
+                            <StackPanel>
+                                <Path Style="{StaticResource RibbonIcon}" Data="M12,2 L21,7 L21,17 L12,22 L3,17 L3,7 Z M3,7 L12,12 L21,7 M12,12 L12,22"/>
+                                <TextBlock Style="{StaticResource RibbonLabel}" Text="SW Parts"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Save &amp; Export"/>
+                </StackPanel>
+
+                <Rectangle Width="1" Margin="8,2" Fill="{StaticResource PanelBorderBrush}"/>
+
+                <StackPanel>
+                    <StackPanel Orientation="Vertical" VerticalAlignment="Center" Margin="10,2,10,0" Height="56">
+                        <TextBlock Text="Units" Foreground="{StaticResource MutedTextBrush}" HorizontalAlignment="Center"/>
+                        <TextBox x:Name="UnitsTextBox" Text="" Style="{StaticResource ToolbarTextBox}" Width="56"
+                                 HorizontalContentAlignment="Center" Margin="0,4,0,0"
+                                 ToolTip="Rescales every part quantity by this many units. Press Enter to renest."
+                                 KeyDown="UnitsTextBox_KeyDown" LostFocus="UnitsTextBox_LostFocus"/>
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Job"/>
+                </StackPanel>
+
+            </StackPanel>
+        </Border>
+
+        <!-- One status bar: what is happening, then the nest's progress, at the right. -->
+        <StatusBar DockPanel.Dock="Bottom" Background="{StaticResource PanelBrush}"
+                   Foreground="{StaticResource TextBrush}"
+                   BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0,1,0,0">
+            <StatusBar.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <DockPanel LastChildFill="True"/>
+                </ItemsPanelTemplate>
+            </StatusBar.ItemsPanel>
+            <StatusBarItem DockPanel.Dock="Right">
+                <Grid Width="160" Height="16">
+                    <ProgressBar Name="MenuProgressBar" Minimum="0" Maximum="100"/>
+                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11"
+                               Foreground="Black"
+                               Text="{Binding Value, ElementName=MenuProgressBar, StringFormat={}{0:0}%}"/>
+                </Grid>
+            </StatusBarItem>
+            <!-- Notification bell: everything the program says that is not a question lands here
+                 instead of in a dialog. The badge counts what has not been looked at and takes the
+                 colour of the worst of it. Click to open the list. -->
+            <StatusBarItem DockPanel.Dock="Right" Margin="0,0,8,0">
+                <Grid>
+                    <Button x:Name="NotificationsButton" Click="NotificationsButton_Click"
+                            Padding="8,1" MinWidth="34" Background="Transparent" BorderThickness="0"
+                            ToolTip="Notifications" Cursor="Hand">
+                        <TextBlock Text="&#x1F514;" FontSize="15" Foreground="{StaticResource TextBrush}"/>
+                    </Button>
+                    <Border IsHitTestVisible="False" HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Margin="0,-3,-2,0" MinWidth="16" Height="16" CornerRadius="8" Padding="4,0"
+                            DataContext="{Binding DataContext, ElementName=NotificationsButton}">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding UnreadCount}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding WorstUnread}" Value="Warning">
+                                        <Setter Property="Background" Value="#FFE0A030"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding WorstUnread}" Value="Error">
+                                        <Setter Property="Background" Value="#FFD04040"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="{Binding UnreadCount}" FontSize="10" FontWeight="Bold"
+                                   Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+
+                    <Popup x:Name="NotificationsPopup" PlacementTarget="{Binding ElementName=NotificationsButton}"
+                           Placement="Top" HorizontalOffset="-520" StaysOpen="False" AllowsTransparency="True"
+                           PopupAnimation="Fade" Closed="NotificationsPopup_Closed">
+                        <Border Width="560" MaxHeight="420" Background="{StaticResource PanelBrush}"
+                                BorderBrush="{StaticResource AccentBrush}" BorderThickness="1" Margin="0,0,0,4">
+                            <DockPanel>
+                                <DockPanel DockPanel.Dock="Top" Margin="10,8">
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                        <Button Content="Copy all" Padding="10,2" Margin="0,0,6,0" Click="CopyNotifications_Click"/>
+                                        <Button Content="Clear" Padding="10,2" Click="ClearNotifications_Click"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Notifications" FontWeight="SemiBold" FontSize="14"
+                                               Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="Nothing to report." Margin="10,4,10,12"
+                                           Foreground="{StaticResource MutedTextBrush}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Entries.Count}" Value="0">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding Entries}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Padding="10,6" BorderBrush="{StaticResource PanelBorderBrush}"
+                                                        BorderThickness="0,1,0,0">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="Transparent"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsUnread}" Value="True">
+                                                                    <Setter Property="Background" Value="#22FFFFFF"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="22"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock FontSize="14" FontWeight="Bold" VerticalAlignment="Top">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Text" Value="i"/>
+                                                                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Level}" Value="Warning">
+                                                                            <Setter Property="Text" Value="!"/>
+                                                                            <Setter Property="Foreground" Value="#FFE0A030"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Level}" Value="Error">
+                                                                            <Setter Property="Text" Value="x"/>
+                                                                            <Setter Property="Foreground" Value="#FFE05050"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                        <StackPanel Grid.Column="1">
+                                                            <DockPanel>
+                                                                <TextBlock DockPanel.Dock="Right" Text="{Binding TimeText}"
+                                                                           Foreground="{StaticResource MutedTextBrush}" FontSize="11"/>
+                                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold"
+                                                                           Foreground="{StaticResource TextBrush}"/>
+                                                            </DockPanel>
+                                                            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,2,0,0"
+                                                                       Foreground="{StaticResource TextBrush}"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
+                    </Popup>
+                </Grid>
+            </StatusBarItem>
+            <!-- The loaded file, at the left, always visible. Full path on hover. -->
+            <StatusBarItem>
+                <TextBlock Name="FileNameTextBlock" Text="No BOM loaded" MaxWidth="420"
+                           TextTrimming="CharacterEllipsis" FontWeight="SemiBold"
+                           ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock Name="StatusText" Text="Open a BOM to begin." TextTrimming="CharacterEllipsis"/>
+            </StatusBarItem>
+        </StatusBar>
+        <TabControl Background="{StaticResource WindowBackgroundBrush}" BorderBrush="{StaticResource PanelBorderBrush}">
+            <TabItem Header="Nested Parts List">
+                <!-- The stock selector lives in the Stock column rather than a sidebar. No outer
+                     ScrollViewer: a DataGrid scrolls and virtualizes itself, and wrapping it gives
+                     it unbounded height, which turns virtualization off - that matters now every
+                     row hosts a ComboBox. -->
+                <DataGrid x:Name="NestedItemsDataGrid" FontSize="16"
+                          RowBackground="{StaticResource GridRowBrush}"
+                          AlternatingRowBackground="{StaticResource GridAltRowBrush}"
+                          Background="{StaticResource WindowBackgroundBrush}"
+                          Foreground="{StaticResource TextBrush}"
+                          AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                          CanUserReorderColumns="False" SelectionUnit="FullRow"
+                          HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                          HorizontalGridLinesBrush="{StaticResource PanelBorderBrush}"
+                          ColumnHeaderStyle="{StaticResource NestGridColumnHeader}"
+                          RowStyle="{StaticResource NestGridRow}"
+                          CellStyle="{StaticResource NestGridCell}">
+                    <!-- Proportional widths rather than a single star column: Description used to
+                         be the only star and so soaked up every spare pixel. The weights keep the
+                         grid filling its container while giving each column a share that suits
+                         what it holds, and MinWidth stops anything collapsing when the window is
+                         narrow (a horizontal scrollbar appears instead). -->
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Description" Binding="{Binding Description}"
+                                            ElementStyle="{StaticResource NestGridCellText}"
+                                            IsReadOnly="True" Width="20*" MinWidth="220"/>
+
+                        <!-- CellTemplate rather than CellEditingTemplate, so the dropdown is live
+                             on a single click instead of needing the cell put into edit mode. -->
+                        <DataGridTemplateColumn Header="Stock" Width="12*" MinWidth="160">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ComboBox ItemsSource="{Binding StockOptions}"
+                                              SelectedItem="{Binding SelectedStock, Mode=TwoWay}"
+                                              SelectionChanged="StockSelectionChanged"
+                                              IsEnabled="{Binding SelectorsEnabled}"
+                                              Margin="2" FontSize="15" VerticalContentAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Header="Count" Binding="{Binding StockCount}"
+                                            ElementStyle="{StaticResource NestGridNumberText}"
+                                            IsReadOnly="True" Width="7*" MinWidth="90"/>
+                        <DataGridTextColumn Header="Efficiency" Binding="{Binding Efficiency}"
+                                            ElementStyle="{StaticResource NestGridNumberText}"
+                                            IsReadOnly="True" Width="9*" MinWidth="120"/>
+                        <DataGridTextColumn Header="Unnested" Binding="{Binding UnnestedCount}"
+                                            ElementStyle="{StaticResource NestGridNumberText}"
+                                            IsReadOnly="True" Width="9*" MinWidth="110"/>
+                        <DataGridTemplateColumn Header="Material" Width="13*" MinWidth="170">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ComboBox ItemsSource="{Binding MaterialOptions}"
+                                              SelectedItem="{Binding SelectedMaterial, Mode=TwoWay}"
+                                              SelectionChanged="MaterialSelectionChanged"
+                                              IsEnabled="{Binding SelectorsEnabled}"
+                                              Margin="2" FontSize="15" VerticalContentAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+            <TabItem Header="Nest 1D Layouts">
+                <!-- Black backdrop to match the Nest 2D viewport. Stock is drawn on top of it in
+                     the slate colour both views share, so the two layouts read the same way:
+                     black is empty space, slate is material you bought, coral is a part. This
+                     canvas used to be slate itself, which meant sticks had to be drawn in some
+                     other colour to show up at all. -->
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="{StaticResource PanelBrush}">
+                        <!-- One material at a time, like the 2D tab: a large job is many groups, and a
+                             stick list is read a material at a time anyway. "All materials" is still
+                             offered for the overview. -->
+                        <TextBlock Text="Showing" Style="{StaticResource ToolbarLabel}" Margin="8,0,4,0"/>
+                        <ComboBox x:Name="Nest1DGroupSelector" Width="520" Margin="4" FontSize="15"
+                                  SelectionChanged="Nest1DGroupSelectionChanged"/>
+                        <!-- Kerf and the clamp allowance belong to the material group being shown. With one
+                             group picked these edit that group alone; with "All materials" they set every
+                             group (and read blank when the groups differ). Committed on Enter or on
+                             losing focus - a renest is triggered on commit, not per keystroke. -->
+                        <TextBlock Text="Kerf" Style="{StaticResource ToolbarLabel}"/>
+                        <TextBox x:Name="KerfTextBox" Text="" Style="{StaticResource ToolbarTextBox}"
+                                 ToolTip="Material lost to each cut, in inches, for the group shown. Press Enter to renest that group."
+                                 KeyDown="StickSettingTextBox_KeyDown" LostFocus="StickSettingTextBox_LostFocus"/>
+                        <TextBlock Text="Min cut length" Style="{StaticResource ToolbarLabel}"/>
+                        <TextBox x:Name="MinCutLengthTextBox" Text="" Style="{StaticResource ToolbarTextBox}"
+                                 ToolTip="Length reserved at the end of each stick that cannot be used (the tube laser's clamp), in inches, for the group shown. Ignored for groups cut on the saw. Press Enter to renest that group."
+                                 KeyDown="StickSettingTextBox_KeyDown" LostFocus="StickSettingTextBox_LostFocus"/>
+                        <Border Style="{StaticResource LegendSwatch}" Margin="24,0,0,0" Background="{StaticResource NestStockBrush}"/>
+                        <TextBlock Text="Stock" Style="{StaticResource HintText}" Margin="4,6,8,6"/>
+                        <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource NestPartBrush}"/>
+                        <TextBlock Text="Part" Style="{StaticResource HintText}" Margin="4,6,8,6"/>
+                        <TextBlock Text="Ctrl + mouse wheel zooms. Hover a part for its details." Style="{StaticResource HintText}"/>
+                    </StackPanel>
+                    <ScrollViewer x:Name="Nest1DScrollViewer" VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Auto">
+                        <Canvas Background="Black" Name="Nest1DLayoutCanvas" Margin="0, 0, 0, 0">
+
+                        </Canvas>
+                    </ScrollViewer>
+                </DockPanel>
+            </TabItem>
+
+            <TabItem Header="Nest 2D Layouts">
+                <DockPanel>
+                    <!-- One material at a time. A large job is several groups of many sheets, and
+                         drawing all of them at once is work spent on sheets nobody is looking at -
+                         a nest is read one material at a time anyway. "All materials" is still
+                         offered for the overview, just not as the default. -->
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="{StaticResource PanelBrush}">
+                        <TextBlock Text="Showing" Style="{StaticResource ToolbarLabel}" Margin="8,0,4,0"/>
+                        <ComboBox x:Name="Nest2DGroupSelector" Width="520" Margin="4" FontSize="15"
+                                  SelectionChanged="Nest2DGroupSelectionChanged"/>
+                        <!-- Spacing belongs to the material group being shown. With one group picked
+                             these edit that group alone; with "All materials" they set every group
+                             (and read blank when the groups differ). Committed on Enter or on
+                             losing focus - a renest is triggered on commit, not per keystroke. -->
+                        <TextBlock Text="Part spacing" Style="{StaticResource ToolbarLabel}"/>
+                        <TextBox x:Name="PartSpacingTextBox" Text="" Style="{StaticResource ToolbarTextBox}"
+                                 ToolTip="Gap left between parts in the group shown, in inches. Press Enter to renest that group."
+                                 KeyDown="SpacingTextBox_KeyDown" LostFocus="SpacingTextBox_LostFocus"/>
+                        <TextBlock Text="Sheet spacing" Style="{StaticResource ToolbarLabel}"/>
+                        <TextBox x:Name="SheetSpacingTextBox" Text="" Style="{StaticResource ToolbarTextBox}"
+                                 ToolTip="Gap left between a part and the sheet edge in the group shown, in inches. Press Enter to renest that group."
+                                 KeyDown="SpacingTextBox_KeyDown" LostFocus="SpacingTextBox_LostFocus"/>
+                        <Border Style="{StaticResource LegendSwatch}" Margin="24,0,0,0" Background="{StaticResource NestStockBrush}"/>
+                        <TextBlock Text="Sheet" Style="{StaticResource HintText}" Margin="4,0,8,0"/>
+                        <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource NestPartBrush}"/>
+                        <TextBlock Text="Part" Style="{StaticResource HintText}" Margin="4,0,8,0"/>
+                        <TextBlock Text="Wheel zooms, middle-drag pans, double-click fits to view. Hover a sheet for its details."
+                                   Style="{StaticResource HintText}"/>
+                    </StackPanel>
+
+                    <!-- No ScrollViewer: navigation is entirely mouse wheel zoom + middle-drag pan
+                         via the canvas RenderTransform. The Border supplies the black backdrop,
+                         clips the transformed drawing to the tab, and (being hit-testable across
+                         the whole viewport) is what the mouse handlers attach to so panning works
+                         over blank space as well as over sheets. The canvas is deliberately
+                         unsized - its content is positioned in inches and moved around by the
+                         transform. -->
+                    <Border x:Name="Nest2DViewport" Background="Black" ClipToBounds="True">
+                        <Canvas Name="Nest2DLayoutCanvas" Margin="0, 0, 0, 0">
+                        </Canvas>
+                    </Border>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Tube End Features">
+                <!-- What is known about each end of each stick part: mitered, clear of features, or
+                     not looked at. Saved on the BOM's own End Features sheet. Changing an end
+                     re-nests that part's group, so the effect on the stick count is immediate. -->
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Background="{StaticResource PanelBrush}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Showing" Style="{StaticResource ToolbarLabel}" Margin="8,0,4,0"/>
+                            <ComboBox x:Name="EndFeaturesGroupSelector" Width="520" Margin="4" FontSize="15"
+                                      SelectionChanged="EndFeaturesGroupSelectionChanged"/>
+                            <TextBlock Text="Set every part shown:" Style="{StaticResource ToolbarLabel}" Margin="24,0,4,0"/>
+                            <TextBlock Text="End A" Style="{StaticResource HintText}" Margin="4,0,4,0"/>
+                            <ComboBox x:Name="BulkEndAComboBox" Width="130" Margin="0,4" FontSize="15"/>
+                            <TextBlock Text="End B" Style="{StaticResource HintText}" Margin="12,0,4,0"/>
+                            <ComboBox x:Name="BulkEndBComboBox" Width="130" Margin="0,4" FontSize="15"/>
+                            <Button x:Name="ApplyBulkEndsButton" Content="Apply" Padding="14,2" Margin="10,4"
+                                    ToolTip="Set the chosen ends on every part shown. Ends left on (no change) are not touched."
+                                    Click="ApplyBulkEnds_Click"/>
+                        </StackPanel>
+                        <TextBlock x:Name="EndFeaturesSummaryText" Style="{StaticResource HintText}" Margin="12,0,12,6"
+                                   Text="Open a BOM to review its stick parts."/>
+                    </StackPanel>
+
+                    <DataGrid x:Name="EndFeaturesDataGrid" FontSize="16"
+                              RowBackground="{StaticResource GridRowBrush}"
+                              AlternatingRowBackground="{StaticResource GridAltRowBrush}"
+                              Background="{StaticResource WindowBackgroundBrush}"
+                              Foreground="{StaticResource TextBrush}"
+                              AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                              CanUserReorderColumns="False" SelectionUnit="FullRow"
+                              HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                              HorizontalGridLinesBrush="{StaticResource PanelBorderBrush}"
+                              ColumnHeaderStyle="{StaticResource NestGridColumnHeader}"
+                              RowStyle="{StaticResource NestGridRow}"
+                              CellStyle="{StaticResource NestGridCell}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Item" Binding="{Binding Item}"
+                                                ElementStyle="{StaticResource NestGridNumberText}"
+                                                IsReadOnly="True" Width="76"/>
+                            <DataGridTextColumn Header="Qty" Binding="{Binding Quantity}"
+                                                ElementStyle="{StaticResource NestGridNumberText}"
+                                                IsReadOnly="True" Width="80"/>
+                            <DataGridTextColumn Header="Description" Binding="{Binding Description}"
+                                                ElementStyle="{StaticResource NestGridCellText}"
+                                                IsReadOnly="True" Width="16*" MinWidth="200"/>
+                            <DataGridTextColumn Header="Length" Binding="{Binding LengthText}"
+                                                ElementStyle="{StaticResource NestGridNumberText}"
+                                                IsReadOnly="True" Width="120"/>
+                            <!-- CellTemplate rather than CellEditingTemplate, so the dropdown is live on a
+                                 single click instead of needing the cell put into edit mode. -->
+                            <DataGridTemplateColumn Header="End A" Width="190">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding EndA, Mode=OneWay}"
+                                                  SelectionChanged="EndASelectionChanged"
+                                                  Margin="2" FontSize="15" VerticalContentAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="End B" Width="190">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding EndB, Mode=OneWay}"
+                                                  SelectionChanged="EndBSelectionChanged"
+                                                  Margin="2" FontSize="15" VerticalContentAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Effect on nesting" Binding="{Binding Effect}"
+                                                ElementStyle="{StaticResource NestGridCellText}"
+                                                IsReadOnly="True" Width="20*" MinWidth="240"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+       
+
+    </DockPanel>
+
+    
+</Window>

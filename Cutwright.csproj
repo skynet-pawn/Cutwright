@@ -1,0 +1,91 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <!-- Pinned rather than left implicit: PublishSingleFile/SelfContained need a target runtime
+         either way, and without this VS's Publish wizard asks you to pick one by hand every time -
+         pick anything but win-x64 and you silently get a different artifact (framework-dependent,
+         or the wrong architecture) with nothing to flag it. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <Product>Cutwright</Product>
+    <Copyright>Copyright 2025-2026 Thomas Steven Davidson</Copyright>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>Cutwright.ico</ApplicationIcon>
+    <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
+    <AnalysisLevel>preview-recommended</AnalysisLevel>
+  </PropertyGroup>
+
+  <!-- Version = Major.Minor.Patch, where Major.Minor are bumped by hand below and Patch is the
+       total git commit count - every build on this repo gets a unique, ever-increasing version
+       with no manual bookkeeping. Falls back to patch 0 when git isn't available (e.g. building
+       from a source zip with no .git folder). -->
+  <PropertyGroup>
+    <VersionMajor>1</VersionMajor>
+    <VersionMinor>2</VersionMinor>
+  </PropertyGroup>
+
+  <Target Name="SetVersionFromGit" BeforeTargets="BeforeBuild;GetAssemblyVersion;Publish">
+    <Exec Command="git rev-list --count HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" ContinueOnError="true">
+      <Output TaskParameter="ConsoleOutput" ItemName="GitCommitCountOutput" />
+    </Exec>
+    <PropertyGroup>
+      <GitCommitCount Condition="'@(GitCommitCountOutput)' != ''">@(GitCommitCountOutput)</GitCommitCount>
+      <GitCommitCount Condition="'$(GitCommitCount)' == ''">0</GitCommitCount>
+      <Version>$(VersionMajor).$(VersionMinor).$(GitCommitCount)</Version>
+      <AssemblyVersion>$(VersionMajor).$(VersionMinor).$(GitCommitCount).0</AssemblyVersion>
+      <FileVersion>$(VersionMajor).$(VersionMinor).$(GitCommitCount).0</FileVersion>
+      <InformationalVersion>$(Version)</InformationalVersion>
+    </PropertyGroup>
+  </Target>
+
+  <ItemGroup>
+    <Content Include="Cutwright.ico" />
+  </ItemGroup>
+
+  <!-- This project sits at the repository root, so its default globs would otherwise pull in the
+       engine library's sources and build output as if they were part of the app. -->
+  <ItemGroup>
+    <Compile Remove="Cutwright.Engine\**" />
+    <None Remove="Cutwright.Engine\**" />
+    <EmbeddedResource Remove="Cutwright.Engine\**" />
+    <Page Remove="Cutwright.Engine\**" />
+    <Resource Remove="Cutwright.Engine\**" />
+  </ItemGroup>
+
+  <!-- The SolidWorks parts export (SW Parts) is optional - see Directory.Build.props for when it is
+       included. Its API assemblies are embedded (EmbedInteropTypes), so the types it uses are
+       compiled into Cutwright itself: the finished exe needs no SolidWorks DLL next to it and runs
+       normally on a machine without SolidWorks. Without SolidWorks the files that need it are
+       simply left out. -->
+  <PropertyGroup Condition="'$(WithSolidWorks)' == 'true'">
+    <DefineConstants>$(DefineConstants);SOLIDWORKS</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(WithSolidWorks)' != 'true'">
+    <Compile Remove="SwPartBuilder.cs;SolidWorksSession.cs;SolidWorksPartsWindow.xaml.cs" />
+    <Page Remove="SolidWorksPartsWindow.xaml" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(WithSolidWorks)' == 'true'">
+    <Reference Include="SolidWorks.Interop.sldworks">
+      <HintPath>$(SolidWorksApiRedist)\SolidWorks.Interop.sldworks.dll</HintPath>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="SolidWorks.Interop.swconst">
+      <HintPath>$(SolidWorksApiRedist)\SolidWorks.Interop.swconst.dll</HintPath>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="Cutwright.Engine\Cutwright.Engine.csproj" />
+  </ItemGroup>
+
+</Project>

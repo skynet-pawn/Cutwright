@@ -1,0 +1,27 @@
+﻿<Project>
+
+  <!-- Whether this build includes File > SW Parts, the SolidWorks parts export.
+
+       The export talks to SolidWorks through its API assemblies, which are proprietary and only
+       exist on a machine with SolidWorks installed. So it is optional:
+
+         * If SolidWorks' API folder is found, it is included automatically - a machine with
+           SolidWorks installed gets it without doing anything.
+         * If not (a contributor's machine, a CI build), it is left out and Cutwright builds normally.
+
+       Force it either way with  -p:WithSolidWorks=true  or  -p:WithSolidWorks=false,
+       and point at an unusual install with  -p:SolidWorksApiRedist=<folder>.
+       Read by Cutwright.csproj. -->
+  <PropertyGroup>
+    <SolidWorksApiRedist Condition="'$(SolidWorksApiRedist)' == ''">C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist</SolidWorksApiRedist>
+
+    <!-- Newer 3DEXPERIENCE installs live under Dassault Systemes instead. Used only when the
+         default above is not there, so a machine with the classic layout is unaffected. -->
+    <SolidWorksApiRedist Condition="!Exists('$(SolidWorksApiRedist)\SolidWorks.Interop.sldworks.dll')
+                                    And Exists('C:\Program Files\Dassault Systemes\SOLIDWORKS 3DEXPERIENCE R2026x\SOLIDWORKS\api\redist\SolidWorks.Interop.sldworks.dll')">C:\Program Files\Dassault Systemes\SOLIDWORKS 3DEXPERIENCE R2026x\SOLIDWORKS\api\redist</SolidWorksApiRedist>
+
+    <WithSolidWorks Condition="'$(WithSolidWorks)' == '' And Exists('$(SolidWorksApiRedist)\SolidWorks.Interop.sldworks.dll')">true</WithSolidWorks>
+    <WithSolidWorks Condition="'$(WithSolidWorks)' == ''">false</WithSolidWorks>
+  </PropertyGroup>
+
+</Project>

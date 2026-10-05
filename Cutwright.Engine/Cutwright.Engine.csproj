@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Cutwright.Engine</AssemblyName>
+    <RootNamespace>Cutwright</RootNamespace>
+    <AnalysisLevel>preview-recommended</AnalysisLevel>
+  </PropertyGroup>
+
+  <!-- The engine keeps its types internal; the app and the tests see them through these. Anything
+       another product (Fillet) needs is made public deliberately. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Cutwright" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+    <PackageReference Include="CsvHelper" Version="33.1.0" />
+    <PackageReference Include="netDxf" Version="2023.11.10" />
+    <PackageReference Include="PdfPig" Version="0.1.16-alpha-20260629-34229" />
+    <PackageReference Include="Tabula" Version="1.0.1" />
+  </ItemGroup>
+
+</Project>

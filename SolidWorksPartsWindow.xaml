@@ -1,0 +1,66 @@
+<Window x:Class="Cutwright.SolidWorksPartsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Export SolidWorks Parts" Height="650" Width="1250">
+
+    <DockPanel Margin="10">
+        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="One plain part per unique part number on the loaded BOM. Sheet parts are sheet metal at the called-out thickness; stick parts come from the shop profile library, then the ANSI library, and are sketched from the callout when neither has the size. Purchased items (no length) are not listed. Existing files with the same name are overwritten. File names can be edited."/>
+
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <TextBlock DockPanel.Dock="Left" Text="Save parts to: " VerticalAlignment="Center"/>
+            <Button DockPanel.Dock="Right" x:Name="BrowseButton" Content="Browse..." Padding="10,2" Margin="6,0,0,0"
+                    Click="BrowseForFolder"/>
+            <TextBox x:Name="FolderTextBox" VerticalContentAlignment="Center"/>
+        </DockPanel>
+
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button x:Name="OpenFolderButton" Content="Open Folder" Padding="12,6" Margin="0,0,8,0"
+                        Click="OpenFolder" Visibility="Collapsed"/>
+                <Button x:Name="BuildButton" Content="Build in SolidWorks" FontSize="20" Padding="12,6"
+                        Click="BuildParts" IsEnabled="False"/>
+            </StackPanel>
+            <TextBlock x:Name="SummaryText" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        </DockPanel>
+
+        <DataGrid x:Name="PartsGrid" AlternatingRowBackground="AliceBlue"
+                  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                  HeadersVisibility="Column" CellEditEnding="PartsGrid_CellEditEnding">
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="Build" Width="50">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox HorizontalAlignment="Center" IsChecked="{Binding Include, UpdateSourceTrigger=PropertyChanged}"
+                                      IsEnabled="{Binding CanInclude}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="File Name" Width="1.1*" Binding="{Binding FileName, UpdateSourceTrigger=LostFocus}"/>
+                <DataGridTextColumn Header="DET" Width="45" Binding="{Binding Det}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Description" Width="2*" Binding="{Binding Description}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Type" Width="55" Binding="{Binding Kind}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Length" Width="60" Binding="{Binding Length}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Width" Width="60" Binding="{Binding Width}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Thick / Wall" Width="75" Binding="{Binding Thickness}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Material" Width="70" Binding="{Binding Material}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Source" Width="1.4*" Binding="{Binding Source}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Status" Width="2.2*" Binding="{Binding Status}" IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsError}" Value="True">
+                                    <Setter Property="Foreground" Value="Firebrick"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>

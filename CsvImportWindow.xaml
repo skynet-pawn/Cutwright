@@ -1,0 +1,34 @@
+﻿<Window x:Class="Cutwright.CsvImportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Cutwright"
+        mc:Ignorable="d"
+        Title="Import BOM from CSV" Height="560" Width="1024">
+
+    <DockPanel Margin="10">
+        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Say what each column of the drawing's table holds, then build the bill of materials. Columns left on Ignore are left out."/>
+
+        <!-- Both the role selectors and the preview columns are generated in code from the widest
+             row in the file. They used to be eight of each, named and hand-wired in this file, which
+             put a hard ceiling of eight columns on any customer's table - one of the sample drawings
+             has exactly eight, so the next one along would have lost data silently. -->
+        <ScrollViewer DockPanel.Dock="Top" HorizontalScrollBarVisibility="Hidden"
+                      VerticalScrollBarVisibility="Disabled">
+            <StackPanel x:Name="ColumnRolePanel" Orientation="Horizontal"/>
+        </ScrollViewer>
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
+                    Margin="0,8,0,0">
+            <TextBlock x:Name="RowCountText" VerticalAlignment="Center" Margin="0,0,16,0"/>
+            <Button x:Name="BuildButton" Content="Build Bill of Materials" FontSize="20" Padding="12,6"
+                    Click="BuildBillOfMaterials"/>
+        </StackPanel>
+
+        <DataGrid x:Name="PreviewGrid" AlternatingRowBackground="AliceBlue"
+                  AutoGenerateColumns="False" IsReadOnly="True"
+                  HeadersVisibility="Column" CanUserAddRows="False"/>
+    </DockPanel>
+</Window>
