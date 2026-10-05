@@ -10,9 +10,10 @@
   </PropertyGroup>
 
   <!-- The engine keeps its types internal; the app and the tests see them through these. Anything
-       another product (Fillet) needs is made public deliberately. -->
+       another program needs is made public deliberately. -->
   <ItemGroup>
     <InternalsVisibleTo Include="Cutwright" />
+    <InternalsVisibleTo Include="Cutwright.Tests" />
   </ItemGroup>
 
   <ItemGroup>

@@ -3,7 +3,7 @@ using ClosedXML.Excel;
 namespace Cutwright
 {
     // The public face of the engine, for programs that feed Cutwright a job instead of a person
-    // typing one in (Fillet). Everything else in the library is internal; this is deliberately
+    // typing one in. Everything else in the library is internal; this is deliberately
     // small and made of plain data, so callers never touch Part, PNest or the workbook layout.
     //
     // The flow is the same one the app runs, file to file: write a Cutwright bill of materials

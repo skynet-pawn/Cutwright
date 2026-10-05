@@ -1,0 +1,58 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Targets net10.0-windows and enables WPF because the assembly under test is a WPF
+         executable. Nothing here touches a window - the nesting code has no UI dependency - but
+         the reference will not load without it. -->
+    <!-- Must match the project under test exactly, Windows SDK version included, or the
+         reference is rejected as incompatible. -->
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>Cutwright.Tests</AssemblyName>
+    <RootNamespace>Cutwright.Tests</RootNamespace>
+
+    <!-- The project under test sets these for shipping. A test assembly is loaded by the test
+         host, so it must not try to be a self-contained single file itself. -->
+    <PublishSingleFile>false</PublishSingleFile>
+    <SelfContained>false</SelfContained>
+
+    <!-- The app builds self-contained for win-x64, so its assembly is AMD64 while a test project
+         defaults to MSIL. MSBuild warns that the mismatch may cause runtime failures (MSB3270);
+         matching it explicitly removes both the warning and the possibility. -->
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Cutwright.csproj" />
+  </ItemGroup>
+
+  <!-- SwLiveBuildTests reopens the parts it builds to measure them, so it needs the SolidWorks API
+       (embedded the same way the app embeds it) and is only built when the app includes the export
+       - see Directory.Build.props. -->
+  <ItemGroup Condition="'$(WithSolidWorks)' != 'true'">
+    <Compile Remove="SwLiveBuildTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(WithSolidWorks)' == 'true'">
+    <Reference Include="SolidWorks.Interop.sldworks">
+      <HintPath>$(SolidWorksApiRedist)\SolidWorks.Interop.sldworks.dll</HintPath>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="SolidWorks.Interop.swconst">
+      <HintPath>$(SolidWorksApiRedist)\SolidWorks.Interop.swconst.dll</HintPath>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+    </Reference>
+  </ItemGroup>
+
+</Project>

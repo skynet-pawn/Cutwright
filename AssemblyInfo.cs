@@ -9,3 +9,7 @@ using System.Windows;
                                                 // app, or any theme specific resource dictionaries)
 )]
 
+
+// Test project reaches the internal nesting types directly - they are internal because
+// nothing outside this assembly should depend on them, not because they should go unchecked.
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Cutwright.Tests")]

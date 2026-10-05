@@ -76,7 +76,7 @@ cell blank, highlighted, when a shop has not set them.
 Area is typed in by the estimator. Not built: Cutwright could later pre-fill a starting estimate from the
 parts: sheet and plate parts `2 x Width x Length`, stick parts `perimeter x Length` where the section
 can be read from the callout. It says plainly that it is an estimate (edges, holes and cut-outs are
-ignored). Later, Fillet can supply true surface area from the model.
+ignored). Later, a host program could supply true surface area from a model.
 
 ### `Purchase`
 

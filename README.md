@@ -20,10 +20,19 @@ dotnet build Cutwright.csproj
 
 The SolidWorks API assemblies are COM assemblies, which only Visual Studio's MSBuild can build. So **when the export is included, build with Visual Studio** (open `Cutwright.sln`) **or the MSBuild from a Developer Command Prompt** (`msbuild Cutwright.csproj /restore`); plain `dotnet build` fails with MSB4803 in that case. The finished exe does **not** need SolidWorks to run.
 
+Run the test suite:
+
+```
+dotnet test Cutwright.Tests
+```
+
+`SwLiveBuildTests` drives a real SolidWorks - it builds one of every kind of part and measures what it saved - and is skipped unless `CUTWRIGHT_SOLIDWORKS_LIVE=1` is set. Run it by hand after changing the SolidWorks export.
+
 ## Layout
 
-- `Cutwright.Engine/` - the UI-free library: the BOM model and workbook format, the callout translator, stick and sheet nesting, DXF reading and writing. Other programs (Fillet) use it too, so keep WPF and COM out of it.
+- `Cutwright.Engine/` - the UI-free library: the BOM model and workbook format, the callout translator, stick and sheet nesting, DXF reading and writing. Other programs can use it too, so keep WPF and COM out of it.
 - `Cutwright.csproj` (repo root) - the WPF app: windows, the nesting view, and the SolidWorks export.
+- `Cutwright.Tests/` - tests for both. They use made-up example data only; nothing in them comes from a real job.
 
 ## License
 

@@ -50,13 +50,13 @@
   </ItemGroup>
 
   <!-- This project sits at the repository root, so its default globs would otherwise pull in the
-       engine library's sources and build output as if they were part of the app. -->
+       test project's and engine library's sources and build output as if they were part of the app. -->
   <ItemGroup>
-    <Compile Remove="Cutwright.Engine\**" />
-    <None Remove="Cutwright.Engine\**" />
-    <EmbeddedResource Remove="Cutwright.Engine\**" />
-    <Page Remove="Cutwright.Engine\**" />
-    <Resource Remove="Cutwright.Engine\**" />
+    <Compile Remove="Cutwright.Tests\**;Cutwright.Engine\**" />
+    <None Remove="Cutwright.Tests\**;Cutwright.Engine\**" />
+    <EmbeddedResource Remove="Cutwright.Tests\**;Cutwright.Engine\**" />
+    <Page Remove="Cutwright.Tests\**;Cutwright.Engine\**" />
+    <Resource Remove="Cutwright.Tests\**;Cutwright.Engine\**" />
   </ItemGroup>
 
   <!-- The SolidWorks parts export (SW Parts) is optional - see Directory.Build.props for when it is
