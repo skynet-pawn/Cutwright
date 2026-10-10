@@ -472,12 +472,23 @@ namespace Cutwright
         //group's description above it. Laid out in the same terms as the 2D view - label, then
         //rows, then a gap before the next group - so the two read the same way.
         private const double Nest1DMargin = 5.0;
-        private const double Nest1DStickHeight = 7.5;
-        private const double Nest1DPartHeight = 5.0;
-        private const double Nest1DStickGap = 2.5;
+        private const double Nest1DStickGap = 1.5;
         private const double Nest1DLabelHeight = 11.0;
         private const double Nest1DGroupGap = 8.0;
         private const double Nest1DCountGap = 6.0;
+
+        //Bars are drawn as tall as the stock really is, so miters come out a true 45 degrees.
+        //Stock thinner than this is drawn this tall anyway, or it would vanish at a normal zoom;
+        //only there are the miters a little steeper than 45.
+        private const double Nest1DMinBarHeight = 1.0;
+
+        //The "x12" beside each bar is sized to the bar, between these, so it neither dwarfs a
+        //thin tube nor shrinks past reading. The top matches the group labels.
+        private const double Nest1DMinCountFontSize = 3.0;
+        private const double Nest1DTextFontSize = 8.0;
+
+        //A line of text is about this many times its font size tall.
+        private const double Nest1DLineHeightFactor = 1.35;
 
         //The 1D drawing is in inches, which would be a few hundred pixels across for a whole
         //stick, so it is scaled up to fill the tab. A LayoutTransform rather than a
@@ -488,6 +499,12 @@ namespace Cutwright
         private double _nest1DScale = 4.0;
         private const double Nest1DMinScale = 0.5;
         private const double Nest1DMaxScale = 24.0;
+
+        //A fresh nest, or another group picked, starts zoomed so the drawing fills this much of
+        //the pane's width; Ctrl + wheel zooms from there. Pending until the pane has a width,
+        //which it does not until the tab is first shown.
+        private const double Nest1DFitFraction = 0.875;
+        private bool _nest1DFitPending = true;
 
         //Ctrl + wheel zooms the 1D drawing. Plain wheel is left alone so it still scrolls the tall
         //drawing. The scroll offsets are kept proportional so the view stays roughly where it was
@@ -520,6 +537,29 @@ namespace Cutwright
                 Nest1DScrollViewer.ScrollToHorizontalOffset(contentX * ratio - cursor.X);
                 Nest1DScrollViewer.ScrollToVerticalOffset(contentY * ratio - cursor.Y);
             };
+
+            //The first time the tab is shown is the first time there is a width to fit to.
+            Nest1DScrollViewer.SizeChanged += (sender, e) =>
+            {
+                if (_nest1DFitPending)
+                    FitNest1DZoom();
+            };
+        }
+
+        //Zooms so the drawing (bars and their counts) spans Nest1DFitFraction of the pane. Left
+        //pending when there is nothing drawn or no pane width yet.
+        private void FitNest1DZoom()
+        {
+            double viewport = Nest1DScrollViewer.ViewportWidth;
+            double content = Nest1DLayoutCanvas.Width;
+
+            if (viewport <= 0 || double.IsNaN(content) || content <= 2 * Nest1DMargin)
+                return;
+
+            _nest1DScale = Math.Clamp(Nest1DFitFraction * viewport / content, Nest1DMinScale, Nest1DMaxScale);
+            Nest1DLayoutCanvas.LayoutTransform = new ScaleTransform(_nest1DScale, _nest1DScale);
+            Nest1DScrollViewer.ScrollToHorizontalOffset(0);
+            _nest1DFitPending = false;
         }
 
         //Shown in the selector when every group is wanted at once.
@@ -571,7 +611,9 @@ namespace Cutwright
             if (_fillingNest1DGroups)
                 return;
 
+            _nest1DFitPending = true;
             DrawTubeNests();
+            FitNest1DZoom();
             SyncStickSettingBoxes();
         }
 
@@ -655,6 +697,11 @@ namespace Cutwright
                 foreach (var part in group.Parts)
                     _endFeatureRows.Add(new EndFeatureRow(part, group, OnEndFeatureRowChanged));
             }
+
+            // Part numbers are optional in the BOM; an all-blank column is just wasted width.
+            EndFeaturesPartNumberColumn.Visibility = _endFeatureRows.Any(r => r.PartNumber.Trim().Length > 0)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
             UpdateEndFeaturesSummary();
         }
@@ -862,10 +909,19 @@ namespace Cutwright
         //Whenever a nest changed. The selector labels carry each group's stick counts, so
         //refilling and redrawing belong together - updating one without the other leaves the list
         //describing a nest that has been replaced.
-        private void RefreshNest1DView()
+        //fitZoom for a fresh nest; a re-nest after a settings change keeps the zoom the estimator
+        //chose.
+        private void RefreshNest1DView(bool fitZoom = false)
         {
+            if (fitZoom)
+                _nest1DFitPending = true;
+
             PopulateNest1DGroupSelector();
             DrawTubeNests();
+
+            if (_nest1DFitPending)
+                FitNest1DZoom();
+
             SyncStickSettingBoxes();
         }
 
@@ -900,18 +956,30 @@ namespace Cutwright
                 contentRight = Math.Max(contentRight, Nest1DMargin + EstimateTextWidth(label));
                 top += Nest1DLabelHeight;
 
+                float miterWidth = list.MiterDrawWidth();
+                if (miterWidth <= 0f)
+                    miterWidth = StickLayout.FallbackMiterWidth;
+
+                //The bar is the stock's own size, the same width its miters are drawn across, so
+                //a miter is a true 45 degrees. A row is tall enough for the bar or its count.
+                double barHeight = Math.Max(miterWidth, Nest1DMinBarHeight);
+                double countFontSize = Math.Clamp(barHeight, Nest1DMinCountFontSize, Nest1DTextFontSize);
+                double countLineHeight = countFontSize * Nest1DLineHeightFactor;
+                double rowHeight = Math.Max(barHeight, countLineHeight);
+
                 foreach (var (representative, count) in StickPatterns.GroupIdenticalSticks(list.Sticks))
                 {
-                    DrawStick(representative, list.Kerf, top);
+                    DrawStick(representative, miterWidth, top + (rowHeight - barHeight) / 2.0, barHeight);
 
                     //Count sits past the end of the stock bar, so the bars stay flush left and can
                     //be compared down the column.
                     string countText = $"x{count}";
                     double countX = Nest1DMargin + representative.StickLength + Nest1DCountGap;
-                    DrawText(countX, top, countText, NestLabelColor, Nest1DLayoutCanvas);
+                    DrawText(countX, top + (rowHeight - countLineHeight) / 2.0, countText, NestLabelColor,
+                        Nest1DLayoutCanvas, countFontSize);
 
-                    contentRight = Math.Max(contentRight, countX + EstimateTextWidth(countText));
-                    top += Nest1DStickHeight + Nest1DStickGap;
+                    contentRight = Math.Max(contentRight, countX + EstimateTextWidth(countText, countFontSize));
+                    top += rowHeight + Nest1DStickGap;
                 }
 
                 top += Nest1DGroupGap;
@@ -923,12 +991,12 @@ namespace Cutwright
             Nest1DLayoutCanvas.Height = top + Nest1DMargin;
         }
 
-        private void DrawStick(Stick stick, float kerf, double top)
+        private void DrawStick(Stick stick, float miterWidth, double top, double height)
         {
             var bar = new Rectangle
             {
                 Width = stick.StickLength,
-                Height = Nest1DStickHeight,
+                Height = height,
                 Stroke = NestOutlineBrush,
                 StrokeThickness = NestOutlineThickness,
                 Fill = NestStockFillBrush,
@@ -940,48 +1008,60 @@ namespace Cutwright
             Canvas.SetTop(bar, top);
             Nest1DLayoutCanvas.Children.Add(bar);
 
-            double partTop = top + (Nest1DStickHeight - Nest1DPartHeight) / 2.0;
-            double x = Nest1DMargin;
+            //Parts fill the bar's full height; their outline and fill set them apart from the stock.
+            //Positions come from StickLayout so the gaps are the nest's own kerf and a shared miter
+            //overlaps its neighbour by the credit - the drawing shows the length the nest charged.
+            List<float> offsets = StickLayout.PartOffsets(stick);
+            bool credited = stick.MiterCreditWidth > 0f;
 
-            foreach (var part in stick.NestedParts)
+            for (int i = 0; i < stick.NestedParts.Count; i++)
             {
-                var partBar = new Rectangle
+                Part part = stick.NestedParts[i];
+                StickPlacement placement = stick.PlacementAt(i);
+
+                var partShape = new Polygon
                 {
-                    Width = part.length,
-                    Height = Nest1DPartHeight,
                     Stroke = NestOutlineBrush,
                     StrokeThickness = NestOutlineThickness,
                     Fill = NestPartFillBrush,
-                    ToolTip = PartToolTip(part)
+                    ToolTip = PartToolTip(part, placement, credited)
                 };
 
-                Canvas.SetLeft(partBar, x);
-                Canvas.SetTop(partBar, partTop);
-                Nest1DLayoutCanvas.Children.Add(partBar);
+                double left = Nest1DMargin + offsets[i];
+                foreach (var (px, py) in StickLayout.Outline(placement, part.length, height, miterWidth))
+                    partShape.Points.Add(new System.Windows.Point(left + px, top + py));
 
-                //Advance by the part plus the cut that frees it, using the nest's own kerf rather
-                //than a copy of the number - the drawing should show the gaps the nest reserved.
-                x += part.length + kerf;
+                Nest1DLayoutCanvas.Children.Add(partShape);
             }
         }
 
         //Part number and description on the first line (either may be missing on a BOM row), then
-        //the length that was cut.
-        private static string PartToolTip(Part part)
+        //the length that was cut, then what the miters are doing where there are any.
+        private static string PartToolTip(Part part, StickPlacement placement, bool credited)
         {
             string name = string.Join("  ", new[] { part.PartNumber, part.Description }
                 .Where(t => !string.IsNullOrWhiteSpace(t)));
 
-            string length = $"Length {part.length:0.###}\"";
+            var lines = new List<string>();
+            if (name.Length > 0)
+                lines.Add(name);
 
-            return name.Length == 0 ? length : name + Environment.NewLine + length;
+            lines.Add($"Length {part.length:0.###}\"");
+
+            if (placement.SharedCut)
+                lines.Add("Miter shares one cut with the part before it");
+
+            if (TubeEndStateText.MiteredEndCount(part.EndState) > 0 && !credited)
+                lines.Add("Miter drawn at a nominal size - no length credited for this stock");
+
+            return string.Join(Environment.NewLine, lines);
         }
 
-        //Rough width of a run of text at the size DrawText uses, for working out how far the
+        //Rough width of a run of text at a DrawText font size, for working out how far the
         //drawing extends. Only feeds the canvas size, so an approximation is enough - measuring
         //would mean a layout pass per label.
-        private static double EstimateTextWidth(string text) =>
-            string.IsNullOrEmpty(text) ? 0.0 : text.Length * 5.0;
+        private static double EstimateTextWidth(string text, double fontSize = Nest1DTextFontSize) =>
+            string.IsNullOrEmpty(text) ? 0.0 : text.Length * 5.0 * fontSize / Nest1DTextFontSize;
 
         // Refreshes just the grid's values, leaving the per-group combo box controls alone -
         // those are built once per loaded BOM by BuildNestDataGrid.
@@ -1795,10 +1875,11 @@ namespace Cutwright
             UpdateUI(error);
         }
 
-        private void DrawText(double x, double y, string text, Color color, Canvas Parent)
+        private void DrawText(double x, double y, string text, Color color, Canvas Parent,
+            double fontSize = Nest1DTextFontSize)
         {
             TextBlock textBlock = new TextBlock();
-            textBlock.FontSize = 8;
+            textBlock.FontSize = fontSize;
             textBlock.Text = text;
             textBlock.Foreground = new SolidColorBrush(color);
             Canvas.SetLeft(textBlock, x);
@@ -1834,7 +1915,7 @@ namespace Cutwright
 
             this.RefreshNestDataGrid();
             this.RefreshNest2DView();
-            this.RefreshNest1DView();
+            this.RefreshNest1DView(fitZoom: true);
             RefreshEndFeaturesView();
             SetStatus("Nested: " + NestSummary());
 
