@@ -24,11 +24,20 @@ namespace Cutwright
         public bool SmallestDrop { get; init; }
     }
 
-    // One cut piece on a stick.
-    public sealed record PlacedCut(string PartNumber, double LengthInches, bool MiterStart, bool MiterEnd);
+    // Which edge of the bar, drawn side-on, runs out to the long point at a mitered end; the other
+    // edge is shorter by the tube's width, so the end is a diagonal.
+    public enum CutSlant { None = 0, LongTop, LongBottom }
 
-    // One distinct stick layout and how many sticks are cut that way.
-    public sealed record StickLayoutView(int Count, IReadOnlyList<PlacedCut> Cuts, double RemainingInches);
+    // One cut piece on a stick. StartInches is where its long point begins, from the start of the stick:
+    // a piece sharing a miter cut with the one before starts the miter credit sooner, so its diagonal
+    // runs alongside its neighbour's. Leading / Trailing say which way each end's miter runs.
+    public sealed record PlacedCut(string PartNumber, double LengthInches, bool MiterStart, bool MiterEnd,
+        double StartInches = 0, bool SharedCut = false, CutSlant Leading = CutSlant.None, CutSlant Trailing = CutSlant.None);
+
+    // One distinct stick layout and how many sticks are cut that way. MiterWidthInches is the width a
+    // miter is drawn across (the credited width where there is one, else the tube's largest section size).
+    public sealed record StickLayoutView(int Count, IReadOnlyList<PlacedCut> Cuts, double RemainingInches,
+        double MiterWidthInches = 0);
 
     public sealed class StickNestPreviewResult
     {
@@ -78,12 +87,25 @@ namespace Cutwright
                 warnings.Add($"Part {number} ({piece.length:0.###} in) is longer than a {group.StickLength:0.###} in stick can give.");
             }
 
-            // Sticks cut the same way are one layout: same pieces in the same order.
+            // Sticks cut the same way are one layout: same pieces, in the same order, with the same miters.
             var layouts = new List<StickLayoutView>();
             var counts = new Dictionary<string, int>();
+            double miterWidth = group.MiterDrawWidth();
             foreach (Stick stick in group.Sticks)
             {
-                string key = string.Join("|", stick.NestedParts.Select(p => $"{p.PartNumber}:{p.length:0.####}"));
+                List<float> offsets = StickLayout.PartOffsets(stick);
+                var cuts = new List<PlacedCut>();
+                for (int i = 0; i < stick.NestedParts.Count; i++)
+                {
+                    Part p = stick.NestedParts[i];
+                    StickPlacement place = stick.PlacementAt(i);
+                    cuts.Add(new PlacedCut(p.PartNumber ?? "", p.length,
+                        TubeEndFeatureText.IsMiter(p.EndA), TubeEndFeatureText.IsMiter(p.EndB),
+                        offsets[i], place.SharedCut, (CutSlant)(int)place.Leading, (CutSlant)(int)place.Trailing));
+                }
+
+                string key = string.Join("|", cuts.Select(c =>
+                    $"{c.PartNumber}:{c.LengthInches:0.####}:{c.SharedCut}:{c.Leading}:{c.Trailing}"));
                 if (counts.TryGetValue(key, out int index))
                 {
                     layouts[index] = layouts[index] with { Count = layouts[index].Count + 1 };
@@ -91,10 +113,7 @@ namespace Cutwright
                 }
 
                 counts[key] = layouts.Count;
-                layouts.Add(new StickLayoutView(1,
-                    stick.NestedParts.Select(p => new PlacedCut(p.PartNumber ?? "", p.length,
-                        TubeEndFeatureText.IsMiter(p.EndA), TubeEndFeatureText.IsMiter(p.EndB))).ToList(),
-                    stick.RemainingLength));
+                layouts.Add(new StickLayoutView(1, cuts, stick.RemainingLength, miterWidth));
             }
 
             return new StickNestPreviewResult

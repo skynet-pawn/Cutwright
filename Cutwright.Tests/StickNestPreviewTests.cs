@@ -34,6 +34,21 @@ namespace Cutwright.Tests
         }
 
         [Fact]
+        public void MiteredPiecesReportWhereTheyStartAndWhichWayTheirMitersRun()
+        {
+            // Two pieces mitered at both ends nest on one stick, the second sharing the first's diagonal.
+            var result = StickNestPreview.Nest(new[] { Piece("M", 2, 60, miterStart: true, miterEnd: true) }, new StickNestSetup());
+
+            var layout = Assert.Single(result.Layouts);
+            Assert.Equal(2, layout.Cuts.Count);
+            Assert.True(layout.MiterWidthInches > 0);
+            Assert.Equal(0, layout.Cuts[0].StartInches, 3);
+            Assert.NotEqual(CutSlant.None, layout.Cuts[0].Trailing);
+            if (layout.Cuts[1].SharedCut)
+                Assert.True(layout.Cuts[1].StartInches < layout.Cuts[0].StartInches + layout.Cuts[0].LengthInches + TNest.DefaultKerf);
+        }
+
+        [Fact]
         public void MixedPiecesMakeSeveralLayouts_LongestFirst()
         {
             var result = StickNestPreview.Nest(new[] { Piece("Long", 3, 150), Piece("Short", 3, 60) }, new StickNestSetup());
