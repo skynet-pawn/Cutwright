@@ -433,6 +433,11 @@
                             <DataGridTextColumn Header="Qty" Binding="{Binding Quantity}"
                                                 ElementStyle="{StaticResource NestGridNumberText}"
                                                 IsReadOnly="True" Width="80"/>
+                            <!-- Hidden when no part shown has a part number (RebuildEndFeatureRows). -->
+                            <DataGridTextColumn x:Name="EndFeaturesPartNumberColumn" Header="Part No."
+                                                Binding="{Binding PartNumber}"
+                                                ElementStyle="{StaticResource NestGridCellText}"
+                                                IsReadOnly="True" Width="8*" MinWidth="140"/>
                             <DataGridTextColumn Header="Description" Binding="{Binding Description}"
                                                 ElementStyle="{StaticResource NestGridCellText}"
                                                 IsReadOnly="True" Width="16*" MinWidth="200"/>

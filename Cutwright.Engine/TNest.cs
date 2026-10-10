@@ -141,7 +141,7 @@ namespace Cutwright
                     this.Sticks.Add(target);
                 }
 
-                target.AddPart(part, sharedCut);
+                target.AddPart(part, sharedCut, clampAllowance);
                 this.NestedList.Add(part);
             }
 
@@ -167,6 +167,20 @@ namespace Cutwright
                 StockForm.RoundTube => spec.Section[0],
                 _ => 0f,
             };
+        }
+
+        // The width a miter is drawn across in the 1D layout. The credited width where there is
+        // one, so a shared cut lines up with what was charged; otherwise the largest section size
+        // in the description, which is only a picture - which face the miter crosses is not known
+        // (see ResolveMiterCreditWidth). Zero when the description gives no size.
+        public float MiterDrawWidth()
+        {
+            float credit = ResolveMiterCreditWidth();
+            if (credit > 0f)
+                return credit;
+
+            MaterialSpec? spec = CalloutTranslator.Read(this.Description ?? string.Empty, null);
+            return spec == null || spec.Section.Count == 0 ? 0f : spec.Section.Max();
         }
 
         // The shortest single stick that holds every instance of this group's parts, reserving

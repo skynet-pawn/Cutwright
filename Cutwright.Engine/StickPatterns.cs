@@ -11,7 +11,7 @@
     //A twenty-stick group is usually two or three distinct patterns, and twenty near-identical
     //bars tell the estimator far less than three bars and their counts.
     //
-    //Patterns are compared on the sequence of cut lengths, which is exactly what the row draws.
+    //Patterns are compared on the sequence of cut lengths and miters, which is exactly what the row draws.
     //Ordering is not a separate concern in practice: the nester places pieces longest first, so
     //a stick's contents always come out in descending length.
     public static List<(Stick Representative, int Count)> GroupIdenticalSticks(List<Stick> sticks)
@@ -50,6 +50,11 @@
             //Exact comparison is right here: these lengths are copies of the same BOM values,
             //not the result of arithmetic, so two equal cuts really are bit-identical.
             if (a.NestedParts[i].length != b.NestedParts[i].length)
+                return false;
+
+            //The row draws the miters too, so the same lengths cut with different miters (or a
+            //shared cut on one stick and not the other) are different rows.
+            if (a.PlacementAt(i) != b.PlacementAt(i))
                 return false;
         }
 
